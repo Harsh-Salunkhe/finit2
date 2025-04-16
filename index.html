@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pokémon Evolution Chain</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f0f8ff;
+      text-align: center;
+      padding: 20px;
+    }
+    input[type="text"] {
+      padding: 10px;
+      width: 200px;
+      font-size: 16px;
+    }
+    button {
+      padding: 10px 15px;
+      font-size: 16px;
+      margin-left: 10px;
+      cursor: pointer;
+    }
+    .evolution-chain {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      margin-top: 30px;
+    }
+    .pokemon {
+      margin: 15px;
+    }
+    .pokemon img {
+      width: 150px;
+      height: 150px;
+    }
+    .error {
+      color: red;
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Pokémon Evolution Chain Viewer</h1>
+  <input type="text" id="pokemonName" placeholder="Enter Pokémon name" />
+  <button onclick="fetchEvolutionChain()">Search</button>
+  <div id="output" class="evolution-chain"></div>
+  <div id="error" class="error"></div>
+
+  <script>
+    async function fetchEvolutionChain() {
+      const name = document.getElementById('pokemonName').value.trim().toLowerCase();
+      const output = document.getElementById('output');
+      const error = document.getElementById('error');
+      output.innerHTML = '';
+      error.textContent = '';
+
+      try {
+        // Get species to find evolution chain URL
+        const speciesRes = await fetch(`https://pokeapi.co/api/v2/pokemon-species/${name}`);
+        if (!speciesRes.ok) throw new Error('Pokémon not found');
+        const speciesData = await speciesRes.json();
+
+        const evoChainUrl = speciesData.evolution_chain.url;
+        const evoRes = await fetch(evoChainUrl);
+        const evoData = await evoRes.json();
+
+        const chain = [];
+        let current = evoData.chain;
+        while (current) {
+          chain.push(current.species.name);
+          current = current.evolves_to[0];
+        }
+
+        for (let pokeName of chain) {
+          const pokeRes = await fetch(`https://pokeapi.co/api/v2/pokemon/${pokeName}`);
+          const pokeData = await pokeRes.json();
+
+          const div = document.createElement('div');
+          div.className = 'pokemon';
+          div.innerHTML = `
+            <h3>${pokeName.charAt(0).toUpperCase() + pokeName.slice(1)}</h3>
+            <img src="${pokeData.sprites.front_default}" alt="${pokeName}" />
+          `;
+          output.appendChild(div);
+        }
+      } catch (err) {
+        error.textContent = err.message;
+      }
+    }
+  </script>
+</body>
+</html>
